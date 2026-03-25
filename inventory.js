@@ -60,3 +60,5 @@ const yogurt = new PerishableProduct("Yogurt", 3.00, 15, "2026-03-22");
 
 const store = new Store();
 [apple, headphones, notebook, milk, yogurt].forEach(p => store.addProduct(p));
+
+Product.applyDiscount(store.inventory, 0.15);
