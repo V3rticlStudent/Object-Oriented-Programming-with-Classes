@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StockRoom — Inventory System</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    /* ── RESET & TOKENS ─────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d0f14;
+      --surface:  #161a22;
+      --border:   #242935;
+      --accent:   #f0c040;
+      --accent2:  #4af0b0;
+      --danger:   #f06060;
+      --text:     #e8eaf0;
+      --muted:    #6b7280;
+      --mono:     'DM Mono', monospace;
+      --sans:     'DM Sans', sans-serif;
+      --display:  'Syne', sans-serif;
+      --radius:   6px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      min-height: 100vh;
+      padding: 0 0 60px;
+      overflow-x: hidden;
+    }
+
+    /* ── HEADER ─────────────────────────────────────── */
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 28px 40px;
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+    }
+    header h1 {
+      font-family: var(--display);
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--accent);
+    }
+    header span {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    /* ── LAYOUT ──────────────────────────────────────── */
+    .shell {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 40px 0;
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 32px;
+    }
+    @media(max-width:780px){
+      .shell { grid-template-columns: 1fr; padding: 24px 16px 0; }
+      header { padding: 20px 16px; }
+    }
+
+    /* ── SECTION LABEL ───────────────────────────────── */
+    .label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    /* ── STAT CARDS ──────────────────────────────────── */
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+    }
+    .stat-card .val {
+      font-family: var(--display);
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1;
+    }
+    .stat-card .desc {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 6px;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── PRODUCT TABLE ───────────────────────────────── */
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    thead tr {
+      background: #1c212e;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-align: left;
+      padding: 12px 16px;
+      font-weight: 500;
+    }
+    td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,.02); }
+
+    .name-cell { font-weight: 500; }
+    .tag {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 3px;
+      letter-spacing: 0.5px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+    .tag-perishable { background: rgba(240,96,96,.15); color: var(--danger); }
+    .tag-standard   { background: rgba(74,240,176,.1);  color: var(--accent2); }
+
+    .price-cell { font-family: var(--mono); font-size: 13px; }
+    .price-cell.discounted { color: var(--accent2); }
+
+    .exp-cell   { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+    .val-cell   { font-family: var(--mono); font-size: 12px; }
+
+    /* ── SIDEBAR ──────────────────────────────────────── */
+    .sidebar { display: flex; flex-direction: column; gap: 20px; }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+    .panel h2 {
+      font-family: var(--display);
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 14px;
+      color: var(--text);
+    }
+
+    /* ── FORM CONTROLS ───────────────────────────────── */
+    .field { margin-bottom: 10px; }
+    .field label {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 4px;
+      letter-spacing: 0.5px;
+    }
+    .field input, .field select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 13px;
+      padding: 8px 10px;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .field input:focus, .field select:focus {
+      border-color: var(--accent);
+    }
+    .field select option { background: var(--surface); }
+
+    #expiry-field { display: none; }
+
+    /* ── BUTTONS ──────────────────────────────────────── */
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: var(--radius);
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+    }
+    .btn:hover  { opacity: .85; }
+    .btn:active { transform: scale(.98); }
+    .btn-primary { background: var(--accent);  color: #000; margin-bottom: 8px; }
+    .btn-danger  { background: var(--danger);  color: #fff; }
+    .btn-muted   { background: var(--border);  color: var(--text); }
+
+    /* ── DISCOUNT STRIP ──────────────────────────────── */
+    .discount-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: 4px;
+    }
+    .discount-row input {
+      width: 70px;
+      flex-shrink: 0;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 13px;
+      padding: 8px 10px;
+      outline: none;
+    }
+    .discount-row input:focus { border-color: var(--accent); }
+    .discount-row .btn { width: auto; flex: 1; }
+
+    /* ── SEARCH ───────────────────────────────────────── */
+    .search-wrap { display: flex; gap: 8px; }
+    .search-wrap input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 13px;
+      padding: 8px 10px;
+      outline: none;
+    }
+    .search-wrap input:focus { border-color: var(--accent); }
+    .search-wrap .btn { width: auto; padding: 8px 14px; }
+
+    #search-result {
+      margin-top: 12px;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--muted);
+      border-left: 2px solid var(--border);
+      padding-left: 10px;
+    }
+    #search-result.found  { color: var(--accent2); border-color: var(--accent2); }
+    #search-result.miss   { color: var(--danger);  border-color: var(--danger); }
+
+    /* ── CONSOLE ──────────────────────────────────────── */
+    #console-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      font-family: var(--mono);
+      font-size: 11px;
+      line-height: 1.8;
+      color: #7dd3c8;
+      max-height: 180px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+
+    /* ── TOAST ────────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--accent);
+      color: #000;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 10px 18px;
+      border-radius: var(--radius);
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity .2s, transform .2s;
+      pointer-events: none;
+      z-index: 999;
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>StockRoom</h1>
+  <span>Inventory Management System</span>
+</header>
+
+<div class="shell">
+
+  <!-- ── MAIN PANEL ── -->
+  <main>
+    <!-- Stat cards -->
+    <div class="stats">
+      <div class="stat-card">
+        <div class="val" id="stat-total">$0.00</div>
+        <div class="desc">Total Inventory Value</div>
+      </div>
+      <div class="stat-card">
+        <div class="val" id="stat-count">0</div>
+        <div class="desc">Products in Stock</div>
+      </div>
+    </div>
+
+    <p class="label">Inventory</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Price</th>
+            <th>Qty</th>
+            <th>Stock Value</th>
+            <th>Expires</th>
+          </tr>
+        </thead>
+        <tbody id="inventory-body"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+
+    <!-- Add Product -->
+    <div class="panel">
+      <h2>Add Product</h2>
+      <div class="field">
+        <label>Type</label>
+        <select id="f-type">
+          <option value="standard">Standard</option>
+          <option value="perishable">Perishable</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Name</label>
+        <input id="f-name" type="text" placeholder="e.g. Banana"/>
+      </div>
+      <div class="field">
+        <label>Price ($)</label>
+        <input id="f-price" type="number" min="0" step="0.01" placeholder="0.00"/>
+      </div>
+      <div class="field">
+        <label>Quantity</label>
+        <input id="f-qty" type="number" min="0" placeholder="0"/>
+      </div>
+      <div class="field" id="expiry-field">
+        <label>Expiration Date</label>
+        <input id="f-expiry" type="date"/>
+      </div>
+      <button class="btn btn-primary" onclick="addProduct()">Add to Inventory</button>
+      <button class="btn btn-muted" onclick="resetStore()">Reset to Defaults</button>
+    </div>
+
+    <!-- Discount -->
+    <div class="panel">
+      <h2>Apply Discount</h2>
+      <div class="discount-row">
+        <input id="discount-val" type="number" min="1" max="99" value="15" placeholder="%"/>
+        <button class="btn btn-danger" onclick="applyDiscount()">Apply %</button>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="panel">
+      <h2>Find Product</h2>
+      <div class="search-wrap">
+        <input id="search-input" type="text" placeholder="Product name…"/>
+        <button class="btn btn-muted" onclick="searchProduct()">Go</button>
+      </div>
+      <div id="search-result">Enter a name and press Go.</div>
+    </div>
+
+    <!-- Console -->
+    <div class="panel">
+      <h2>Console Log</h2>
+      <div id="console-box"></div>
+    </div>
+
+  </aside>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ============================================================
+// PART 1: Base Class — Product
+// ============================================================
+class Product {
+  constructor(name, price, quantity) {
+    this.name     = name;
+    this.price    = price;
+    this.quantity = quantity;
+  }
+
+  // Total stock value for this product
+  getTotalValue() {
+    return this.price * this.quantity;
+  }
+
+  // Readable string (used in console output)
+  toString() {
+    return `Product: ${this.name}, Price: $${this.price.toFixed(2)}, Quantity: ${this.quantity}`;
+  }
+
+  // ── PART 3: Static discount method ────────────────────────
+  // Reduces price of every product in the array by `discount` fraction
+  static applyDiscount(products, discount) {
+    products.forEach(p => {
+      p.price = parseFloat((p.price * (1 - discount)).toFixed(2));
+    });
+  }
+}
+
+// ============================================================
+// PART 2: Subclass — PerishableProduct
+// ============================================================
+class PerishableProduct extends Product {
+  constructor(name, price, quantity, expirationDate) {
+    super(name, price, quantity);          // delegate to Product
+    this.expirationDate = expirationDate;
+  }
+
+  // Override: appends expiration date to the base string
+  toString() {
+    return `${super.toString()}, Expiration Date: ${this.expirationDate}`;
+  }
+}
+
+// ============================================================
+// PART 4: Store Class
+// ============================================================
+class Store {
+  constructor() {
+    this.inventory = [];  // holds Product / PerishableProduct objects
+  }
+
+  addProduct(product) {
+    this.inventory.push(product);
+  }
+
+  // Sum of getTotalValue() across all products
+  getInventoryValue() {
+    return this.inventory.reduce((sum, p) => sum + p.getTotalValue(), 0);
+  }
+
+  // Case-insensitive name search; returns null if not found
+  findProductByName(name) {
+    return this.inventory.find(
+      p => p.name.toLowerCase() === name.toLowerCase()
+    ) || null;
+  }
+}
+
+// ============================================================
+// UI helpers
+// ============================================================
+
+let store = new Store();       // the active store instance
+const consoleBox = document.getElementById("console-box");
+
+// Append a line to the on-screen console panel
+function log(msg) {
+  consoleBox.textContent += msg + "\n";
+  consoleBox.scrollTop = consoleBox.scrollHeight;
+}
+
+// Brief toast notification
+function toast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  setTimeout(() => el.classList.remove("show"), 2200);
+}
+
+// Re-draw the inventory table and stat cards
+function renderInventory() {
+  const tbody = document.getElementById("inventory-body");
+  tbody.innerHTML = "";
+
+  store.inventory.forEach(p => {
+    const isPer = p instanceof PerishableProduct;
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td class="name-cell">
+        ${p.name}
+        <span class="tag ${isPer ? "tag-perishable" : "tag-standard"}">
+          ${isPer ? "perishable" : "standard"}
+        </span>
+      </td>
+      <td class="price-cell">$${p.price.toFixed(2)}</td>
+      <td>${p.quantity}</td>
+      <td class="val-cell">$${p.getTotalValue().toFixed(2)}</td>
+      <td class="exp-cell">${isPer ? p.expirationDate : "—"}</td>
+    `;
+    tbody.appendChild(row);
+  });
+
+  // Update stat cards
+  document.getElementById("stat-total").textContent =
+    `$${store.getInventoryValue().toFixed(2)}`;
+  document.getElementById("stat-count").textContent =
+    store.inventory.length;
+}
+
+// ── Toggle expiry field when type changes ──────────────────
+document.getElementById("f-type").addEventListener("change", function() {
+  document.getElementById("expiry-field").style.display =
+    this.value === "perishable" ? "block" : "none";
+});
+
+// ── Add product from form ──────────────────────────────────
+function addProduct() {
+  const type   = document.getElementById("f-type").value;
+  const name   = document.getElementById("f-name").value.trim();
+  const price  = parseFloat(document.getElementById("f-price").value);
+  const qty    = parseInt(document.getElementById("f-qty").value);
+  const expiry = document.getElementById("f-expiry").value;
+
+  if (!name || isNaN(price) || isNaN(qty)) {
+    toast("Please fill in all required fields.");
+    return;
+  }
+  if (type === "perishable" && !expiry) {
+    toast("Please set an expiration date.");
+    return;
+  }
+
+  const product = type === "perishable"
+    ? new PerishableProduct(name, price, qty, expiry)
+    : new Product(name, price, qty);
+
+  store.addProduct(product);
+  log(`+ Added: ${product.toString()}`);
+  renderInventory();
+  toast(`"${name}" added!`);
+
+  // Clear form inputs
+  document.getElementById("f-name").value  = "";
+  document.getElementById("f-price").value = "";
+  document.getElementById("f-qty").value   = "";
+  document.getElementById("f-expiry").value = "";
+}
+
+// ── Apply discount ──────────────────────────────────────────
+function applyDiscount() {
+  const pct = parseFloat(document.getElementById("discount-val").value);
+  if (isNaN(pct) || pct <= 0 || pct >= 100) {
+    toast("Enter a discount between 1 and 99.");
+    return;
+  }
+  const before = store.getInventoryValue().toFixed(2);
+  Product.applyDiscount(store.inventory, pct / 100);
+  const after  = store.getInventoryValue().toFixed(2);
+
+  log(`\n── Applied ${pct}% discount ──`);
+  log(`  Before: $${before}  →  After: $${after}`);
+  store.inventory.forEach(p => log(`  ${p.toString()}`));
+
+  renderInventory();
+  toast(`${pct}% discount applied!`);
+}
+
+// ── Search by name ──────────────────────────────────────────
+function searchProduct() {
+  const query  = document.getElementById("search-input").value.trim();
+  const result = document.getElementById("search-result");
+  if (!query) return;
+
+  const found = store.findProductByName(query);
+  if (found) {
+    result.className = "found";
+    result.textContent = found.toString();
+    log(`\nSearch "${query}" → FOUND\n  ${found.toString()}`);
+  } else {
+    result.className = "miss";
+    result.textContent = `"${query}" not found in inventory.`;
+    log(`Search "${query}" → NOT FOUND`);
+  }
+}
+// Allow Enter key in search box
+document.getElementById("search-input").addEventListener("keydown", e => {
+  if (e.key === "Enter") searchProduct();
+});
+
+// ── Reset to default sample data ───────────────────────────
+function resetStore() {
+  store = new Store();
+
+  // 3 standard products + 2 perishable products (satisfies Part 5)
+  const defaults = [
+    new Product("Apple",      2.50, 50),
+    new Product("Headphones", 49.99, 15),
+    new Product("Notebook",   4.75, 100),
+    new PerishableProduct("Milk",   1.50, 10, "2025-12-31"),
+    new PerishableProduct("Yogurt", 2.00, 25, "2025-11-15"),
+  ];
+
+  defaults.forEach(p => store.addProduct(p));
+
+  consoleBox.textContent = "";
+  log("=== Inventory reset to defaults ===");
+  const before = store.getInventoryValue().toFixed(2);
+  log(`Total value (before discount): $${before}`);
+
+  // Print value after 15% discount to console (Part 5 requirement)
+  // We clone prices to show the log without mutating the live data
+  const cloned = store.inventory.map(p =>
+    p instanceof PerishableProduct
+      ? new PerishableProduct(p.name, p.price, p.quantity, p.expirationDate)
+      : new Product(p.name, p.price, p.quantity)
+  );
+  Product.applyDiscount(cloned, 0.15);
+  const afterVal = cloned.reduce((s, p) => s + p.getTotalValue(), 0).toFixed(2);
+  log(`Total value (after 15% discount): $${afterVal}`);
+
+  // Search demo
+  const found = store.findProductByName("Milk");
+  log(`\nSearch "Milk" → ${found ? found.toString() : "NOT FOUND"}`);
+
+  renderInventory();
+  toast("Store reset!");
+}
+
+// ── Bootstrap on load ───────────────────────────────────────
+resetStore();
+</script>
+</body>
+</html>
