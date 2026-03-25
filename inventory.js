@@ -66,3 +66,7 @@ Product.applyDiscount(store.inventory, 0.15);
 console.log("\n=== AFTER 15% DISCOUNT ===");
 store.inventory.forEach(p => console.log(p.toString()));
 console.log(`Total Inventory Value: $${store.getInventoryValue().toFixed(2)}`);
+
+const found = store.findProductByName("Milk");
+console.log("\n=== PRODUCT SEARCH: 'Milk' ===");
+console.log(found ? found.toString() : "Product not found.");
