@@ -29,4 +29,13 @@ class PerishableProduct extends Product {
 }
 
 class Store {
+ constructor() {
+    // Holds all products in the store
+    this.inventory = [];
+  }
+
+  // Adds a product to the inventory
+  addProduct(product) {
+    this.inventory.push(product);
+  }
 }
