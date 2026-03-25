@@ -57,3 +57,6 @@ const notebook = new Product("Notebook", 7.50, 100);
 
 const milk = new PerishableProduct("Milk",   2.50, 15, "2026-1-31");
 const yogurt = new PerishableProduct("Yogurt", 3.00, 15, "2026-03-22");
+
+const store = new Store();
+[apple, headphones, notebook, milk, yogurt].forEach(p => store.addProduct(p));
