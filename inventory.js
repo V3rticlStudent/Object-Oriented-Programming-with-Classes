@@ -43,5 +43,10 @@ class Store {
       return total + product.getTotalValue();
     }, 0);
   }
+ findProductByName(name) {
+    return this.inventory.find(
+      product => product.name.toLowerCase() === name.toLowerCase()
+    ) || null;
+  }
 }
 
