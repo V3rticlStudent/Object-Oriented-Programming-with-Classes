@@ -50,3 +50,10 @@ class Store {
   }
 }
 
+const apple = new Product("Apple", 2.75, 24);
+const headphones = new Product("Headphones", 149.99, 8);
+const notebook = new Product("Notebook", 7.50, 100);
+
+
+const milk = new PerishableProduct("Milk",   2.50, 15, "2026-1-31");
+const yogurt = new PerishableProduct("Yogurt", 3.00, 15, "2026-03-22");
