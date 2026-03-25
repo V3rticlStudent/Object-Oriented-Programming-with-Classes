@@ -17,3 +17,6 @@ getTotalValue() {
     });
   }
 }
+
+class PerishableProduct extends Product {
+}
